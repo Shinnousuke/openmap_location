@@ -1,0 +1,235 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7faf7">
+  <title>OpenMap — Explore Nearby</title>
+  <meta name="description" content="A simplified OpenStreetMap experience for finding nearby places, exploring categories, and saving locations.">
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Leaflet map library -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="OpenMap home">
+      <span class="brand-icon">⌖</span>
+      <span>open<span class="brand-accent">map</span></span>
+    </a>
+
+    <div class="topbar-note">
+      <span class="live-dot"></span>
+      Explore your surroundings
+    </div>
+
+    <button id="locateBtn" class="button button-primary" type="button">
+      <span aria-hidden="true">◎</span>
+      <span>Use my location</span>
+    </button>
+  </header>
+
+  <main class="app-layout">
+    <aside class="sidebar">
+      <section class="intro">
+        <p class="eyebrow">YOUR NEIGHBOURHOOD, SIMPLIFIED</p>
+        <h1>Find your<br><span>next favourite</span> place.</h1>
+        <p class="intro-copy">
+          Discover useful places around you without the clutter.
+        </p>
+      </section>
+
+      <form id="searchForm" class="search-form" role="search">
+        <label class="sr-only" for="searchInput">Search a place or address</label>
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Search a place or address"
+          autocomplete="off"
+        >
+        <button type="submit" aria-label="Search">→</button>
+      </form>
+
+      <p id="mapStatus" class="status-text" role="status" aria-live="polite">
+        Search for a place or use your location to begin.
+      </p>
+
+      <section class="section-block">
+        <div class="section-heading">
+          <h2>Explore categories</h2>
+          <span class="muted-label">NEARBY</span>
+        </div>
+
+        <div id="categoryList" class="category-grid">
+          <button class="category-button active" data-category="all" type="button">
+            <span class="category-icon">✦</span><span>All places</span>
+          </button>
+          <button class="category-button" data-category="cafe" type="button">
+            <span class="category-icon">☕</span><span>Cafés</span>
+          </button>
+          <button class="category-button" data-category="restaurant" type="button">
+            <span class="category-icon">♨</span><span>Restaurants</span>
+          </button>
+          <button class="category-button" data-category="shop" type="button">
+            <span class="category-icon">⌂</span><span>Shops</span>
+          </button>
+          <button class="category-button" data-category="park" type="button">
+            <span class="category-icon">♧</span><span>Parks</span>
+          </button>
+          <button class="category-button" data-category="pharmacy" type="button">
+            <span class="category-icon">＋</span><span>Pharmacies</span>
+          </button>
+          <button class="category-button" data-category="atm" type="button">
+            <span class="category-icon">₹</span><span>ATMs</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="section-block radius-section">
+        <div class="section-heading">
+          <h2>Search radius</h2>
+          <span id="radiusValue" class="radius-value">2 km</span>
+        </div>
+        <input
+          id="radiusSlider"
+          class="radius-slider"
+          type="range"
+          min="500"
+          max="5000"
+          step="500"
+          value="2000"
+          aria-label="Search radius in metres"
+        >
+        <div class="range-labels">
+          <span>500 m</span>
+          <span>5 km</span>
+        </div>
+        <button id="refreshBtn" class="button button-secondary button-full" type="button">
+          Refresh nearby places
+        </button>
+      </section>
+
+      <section class="section-block results-section">
+        <div class="section-heading">
+          <h2 id="resultsHeading">Nearby places</h2>
+          <span id="resultsCount" class="count-pill">0</span>
+        </div>
+        <p id="resultsDescription" class="results-description">
+          Results will appear here after you choose a location.
+        </p>
+        <div id="placesList" class="places-list">
+          <div class="empty-state">
+            <span class="empty-icon">⌖</span>
+            <p>Your next discovery starts here.</p>
+            <span>Search for a location or use your GPS.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-block saved-section">
+        <div class="section-heading">
+          <h2>Saved places</h2>
+          <span id="savedCount" class="count-pill">0</span>
+        </div>
+        <div id="savedList" class="saved-list">
+          <p class="small-muted">Places you save will appear here.</p>
+        </div>
+      </section>
+
+      <footer class="sidebar-footer">
+        <span class="footer-mark">⌖</span>
+        <span>Mapping made more approachable.</span>
+      </footer>
+    </aside>
+
+    <section class="map-panel" aria-label="Interactive map and place details">
+      <div class="map-toolbar">
+        <div class="map-toolbar-title">
+          <span class="map-pin-symbol">⌖</span>
+          <div>
+            <strong>Explore map</strong>
+            <span id="mapSubtitle">Search anywhere to get started</span>
+          </div>
+        </div>
+
+        <label class="layer-control">
+          <span>Map style</span>
+          <select id="layerSelect" aria-label="Choose map style">
+            <option value="standard">Standard</option>
+            <option value="humanitarian">Humanitarian</option>
+            <option value="topographic">Topographic</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="map-wrap">
+        <div id="map" aria-label="OpenStreetMap interactive map"></div>
+
+        <div class="map-legend">
+          <span class="legend-dot"></span>
+          <span>Selected location</span>
+          <span class="legend-divider"></span>
+          <span class="legend-pin">●</span>
+          <span>Nearby places</span>
+        </div>
+
+        <button id="recenterBtn" class="recenter-button" type="button" title="Return to selected location">
+          ◎ <span>Recenter</span>
+        </button>
+
+        <div id="mapLoading" class="map-loading" hidden>
+          <span class="spinner"></span>
+          <span>Finding places nearby…</span>
+        </div>
+      </div>
+
+      <div class="map-bottom">
+        <div class="map-bottom-copy">
+          <span class="bottom-icon">✦</span>
+          <div>
+            <strong>Explore at your own pace</strong>
+            <p>Select a marker or a result card to see more details.</p>
+          </div>
+        </div>
+        <span class="data-credit">Map data © OpenStreetMap contributors</span>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="placeModal" class="modal-backdrop" hidden>
+    <section class="place-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button id="closeModalBtn" class="modal-close" type="button" aria-label="Close place details">×</button>
+      <div id="modalCategoryIcon" class="modal-category-icon">⌖</div>
+      <p id="modalCategory" class="eyebrow">PLACE DETAILS</p>
+      <h2 id="modalTitle">Place name</h2>
+      <p id="modalAddress" class="modal-address"></p>
+      <div class="coordinates-row">
+        <span>Latitude</span>
+        <strong id="modalLat">—</strong>
+      </div>
+      <div class="coordinates-row">
+        <span>Longitude</span>
+        <strong id="modalLon">—</strong>
+      </div>
+      <div class="modal-actions">
+        <button id="directionsBtn" class="button button-primary" type="button">↗ Get directions</button>
+        <button id="savePlaceBtn" class="button button-secondary" type="button">☆ Save place</button>
+      </div>
+      <p class="modal-note">Place information is sourced from OpenStreetMap data and may not be complete.</p>
+    </section>
+  </div>
+
+  <noscript>This map experience needs JavaScript enabled in your browser.</noscript>
+</body>
+</html>
